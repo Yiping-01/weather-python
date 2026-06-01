@@ -386,232 +386,269 @@
   </main>
 
   <script>
-    // 請換成你的中央氣象署 API 授權碼
-    // 注意：不要加「碼」這個字
-    const API_KEY = "CWA-C00C85F2-5345-4447-B50A-7EB2396408A1";
-    const API_URL = "https://opendata.cwa.gov.tw/api/v1/rest/datastore/F-D0047-091";
+  // 請換成你的中央氣象署 API 授權碼
+  // 注意：不要加「碼」這個字
+  const API_KEY = "CWA-C00C85F2-5345-4447-B50A-7EB2396408A1";
+  const API_URL = "https://opendata.cwa.gov.tw/api/v1/rest/datastore/F-D0047-091";
 
-    let weatherChart = null;
+  let weatherChart = null;
 
-    const citySelect = document.getElementById("citySelect");
-    const cityName = document.getElementById("cityName");
-    const mapCity = document.getElementById("mapCity");
-    const statusBox = document.getElementById("status");
-    const currentIcon = document.getElementById("currentIcon");
-    const currentText = document.getElementById("currentText");
-    const rainAlert = document.getElementById("rainAlert");
-    const daysContainer = document.getElementById("daysContainer");
+  const citySelect = document.getElementById("citySelect");
+  const cityName = document.getElementById("cityName");
+  const mapCity = document.getElementById("mapCity");
+  const statusBox = document.getElementById("status");
+  const currentIcon = document.getElementById("currentIcon");
+  const currentText = document.getElementById("currentText");
+  const rainAlert = document.getElementById("rainAlert");
+  const daysContainer = document.getElementById("daysContainer");
 
-    citySelect.value = "桃園市";
+  citySelect.value = "桃園市";
 
-    function weatherToIcon(text) {
-      if (!text) return "🌤️";
-      if (text.includes("雷")) return "⛈️";
-      if (text.includes("雨")) return "🌧️";
-      if (text.includes("陰")) return "☁️";
-      if (text.includes("多雲")) return "🌥️";
-      if (text.includes("晴")) return "☀️";
-      return "🌤️";
+  function weatherToIcon(text) {
+    if (!text) return "🌤️";
+    if (text.includes("雷")) return "⛈️";
+    if (text.includes("雨")) return "🌧️";
+    if (text.includes("陰")) return "☁️";
+    if (text.includes("多雲")) return "🌥️";
+    if (text.includes("晴")) return "☀️";
+    return "🌤️";
+  }
+
+  function getFirstValue(elementValue) {
+    if (!elementValue || elementValue.length === 0) return "";
+
+    const firstItem = elementValue[0];
+
+    if (!firstItem) return "";
+
+    return Object.values(firstItem)[0] || "";
+  }
+
+  function findLocations(obj, locations = []) {
+    if (Array.isArray(obj)) {
+      obj.forEach(item => findLocations(item, locations));
+    } else if (obj && typeof obj === "object") {
+      if (obj.LocationName && obj.WeatherElement) {
+        locations.push(obj);
+      }
+
+      Object.values(obj).forEach(value => findLocations(value, locations));
     }
 
-    function getFirstValue(elementValue) {
-      if (!elementValue || elementValue.length === 0) return "";
-      const firstItem = elementValue[0];
-      return Object.values(firstItem)[0] || "";
-    }
+    return locations;
+  }
 
-    function findLocations(obj, locations = []) {
-      if (Array.isArray(obj)) {
-        obj.forEach(item => findLocations(item, locations));
-      } else if (obj && typeof obj === "object") {
-        if (obj.LocationName && obj.WeatherElement) {
-          locations.push(obj);
+  // 這裡會顯示：周一白天、周一晚上、周二白天、周二晚上
+  function shortDate(dateString) {
+    const date = new Date(dateString);
+    const week = ["日", "一", "二", "三", "四", "五", "六"];
+    const hour = date.getHours();
+
+    const period = hour < 12 ? "白天" : "晚上";
+
+    return `周${week[date.getDay()]}${period}`;
+  }
+
+  function parseWeather(location) {
+    const result = {};
+
+    location.WeatherElement.forEach(element => {
+      const elementName = element.ElementName;
+
+      element.Time.forEach(timeData => {
+        const startTime = timeData.StartTime;
+        const endTime = timeData.EndTime;
+        const key = `${startTime}_${endTime}`;
+
+        if (!result[key]) {
+          result[key] = {
+            startTime,
+            endTime,
+            weather: "",
+            maxTemp: "",
+            minTemp: "",
+            pop: "",
+            description: ""
+          };
         }
-        Object.values(obj).forEach(value => findLocations(value, locations));
-      }
-      return locations;
-    }
 
-    function shortDate(dateString) {
-      const date = new Date(dateString);
-      const week = ["日", "一", "二", "三", "四", "五", "六"];
-      return `周${week[date.getDay()]}`;
-    }
+        const value = getFirstValue(timeData.ElementValue);
 
-    function parseWeather(location) {
-      const result = {};
-
-      location.WeatherElement.forEach(element => {
-        const elementName = element.ElementName;
-
-        element.Time.forEach(timeData => {
-          const startTime = timeData.StartTime;
-          const endTime = timeData.EndTime;
-          const key = `${startTime}_${endTime}`;
-
-          if (!result[key]) {
-            result[key] = {
-              startTime,
-              endTime,
-              weather: "",
-              maxTemp: "",
-              minTemp: "",
-              pop: "",
-              description: ""
-            };
-          }
-
-          const value = getFirstValue(timeData.ElementValue);
-
-          if (elementName === "天氣現象") {
-            result[key].weather = value;
-          } else if (elementName === "最高溫度") {
-            result[key].maxTemp = value;
-          } else if (elementName === "最低溫度") {
-            result[key].minTemp = value;
-          } else if (elementName === "12小時降雨機率") {
-            result[key].pop = value;
-          } else if (elementName === "天氣預報綜合描述") {
-            result[key].description = value;
-          }
-        });
+        if (elementName === "天氣現象") {
+          result[key].weather = value;
+        } else if (elementName === "最高溫度") {
+          result[key].maxTemp = value;
+        } else if (elementName === "最低溫度") {
+          result[key].minTemp = value;
+        } else if (elementName === "12小時降雨機率") {
+          result[key].pop = value;
+        } else if (elementName === "天氣預報綜合描述") {
+          result[key].description = value;
+        }
       });
+    });
 
-      return Object.values(result).filter(item => item.weather || item.description);
+    return Object.values(result).filter(item => item.weather || item.description);
+  }
+
+  function renderDays(data) {
+    daysContainer.innerHTML = "";
+
+    // 中央氣象署是 12 小時一筆，所以前 7 筆會是：
+    // 周一白天、周一晚上、周二白天、周二晚上...
+    const firstSeven = data.slice(0, 7);
+
+    firstSeven.forEach(item => {
+      const card = document.createElement("div");
+      card.className = "day-card";
+
+      card.innerHTML = `
+        <div class="day-name">${shortDate(item.startTime)}</div>
+        <div class="day-icon">${weatherToIcon(item.weather)}</div>
+        <div class="day-temp">${item.minTemp || "-"}° / ${item.maxTemp || "-"}°</div>
+      `;
+
+      daysContainer.appendChild(card);
+    });
+  }
+
+  function renderChart(data) {
+    // 不合併日期，保留 12 小時資料
+    const firstSeven = data.slice(0, 7);
+
+    const labels = firstSeven.map(item => shortDate(item.startTime));
+    const maxTemps = firstSeven.map(item => Number(item.maxTemp || 0));
+    const rainPops = firstSeven.map(item => {
+      if (item.pop === "-") return 0;
+      return Number(item.pop || 0);
+    });
+
+    const ctx = document.getElementById("weatherChart");
+
+    if (weatherChart) {
+      weatherChart.destroy();
     }
 
-    function renderDays(data) {
-      daysContainer.innerHTML = "";
-      const firstSeven = data.slice(0, 7);
-
-      firstSeven.forEach(item => {
-        const card = document.createElement("div");
-        card.className = "day-card";
-        card.innerHTML = `
-          <div class="day-name">${shortDate(item.startTime)}</div>
-          <div class="day-icon">${weatherToIcon(item.weather)}</div>
-          <div class="day-temp">${item.minTemp || "-"}° / ${item.maxTemp || "-"}°</div>
-        `;
-        daysContainer.appendChild(card);
-      });
-    }
-
-    function renderChart(data) {
-      const firstSeven = data.slice(0, 7);
-      const labels = firstSeven.map(item => shortDate(item.startTime));
-      const maxTemps = firstSeven.map(item => Number(item.maxTemp || 0));
-      const rainPops = firstSeven.map(item => item.pop === "-" ? 0 : Number(item.pop || 0));
-
-      const ctx = document.getElementById("weatherChart");
-
-      if (weatherChart) {
-        weatherChart.destroy();
-      }
-
-      weatherChart = new Chart(ctx, {
-        type: "line",
-        data: {
-          labels,
-          datasets: [
-            {
-              label: "最高溫度 °C",
-              data: maxTemps,
-              borderWidth: 3,
-              tension: 0.35,
-              yAxisID: "y"
-            },
-            {
-              label: "降雨機率 %",
-              data: rainPops,
-              borderWidth: 3,
-              tension: 0.35,
-              yAxisID: "y1"
-            }
-          ]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: {
-            legend: {
-              labels: {
-                font: { size: 13, weight: "bold" }
+    weatherChart = new Chart(ctx, {
+      type: "line",
+      data: {
+        labels,
+        datasets: [
+          {
+            label: "最高溫度 °C",
+            data: maxTemps,
+            borderWidth: 3,
+            tension: 0.35,
+            yAxisID: "y"
+          },
+          {
+            label: "降雨機率 %",
+            data: rainPops,
+            borderWidth: 3,
+            tension: 0.35,
+            yAxisID: "y1"
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            labels: {
+              font: {
+                size: 13,
+                weight: "bold"
               }
             }
+          }
+        },
+        scales: {
+          y: {
+            beginAtZero: false,
+            position: "left",
+            title: {
+              display: true,
+              text: "溫度 °C"
+            }
           },
-          scales: {
-            y: {
-              beginAtZero: false,
-              position: "left",
-              title: { display: true, text: "溫度 °C" }
+          y1: {
+            beginAtZero: true,
+            max: 100,
+            position: "right",
+            grid: {
+              drawOnChartArea: false
             },
-            y1: {
-              beginAtZero: true,
-              max: 100,
-              position: "right",
-              grid: { drawOnChartArea: false },
-              title: { display: true, text: "降雨機率 %" }
+            title: {
+              display: true,
+              text: "降雨機率 %"
             }
           }
         }
-      });
+      }
+    });
+  }
+
+  async function loadWeather() {
+    const city = citySelect.value;
+
+    cityName.textContent = city;
+    mapCity.textContent = city;
+    statusBox.textContent = "資料載入中...";
+    statusBox.className = "loading";
+
+    if (API_KEY === "請換成你的中央氣象署API授權碼") {
+      statusBox.textContent = "請先在程式碼裡填入你的中央氣象署 API_KEY。";
+      statusBox.className = "error";
+      return;
     }
 
-    async function loadWeather() {
-      const city = citySelect.value;
-      cityName.textContent = city;
-      mapCity.textContent = city;
-      statusBox.textContent = "資料載入中...";
-      statusBox.className = "loading";
+    const url = `${API_URL}?Authorization=${API_KEY}&format=JSON&sort=time`;
 
-      if (API_KEY === "請換成你的中央氣象署API授權碼") {
-        statusBox.textContent = "請先在程式碼裡填入你的中央氣象署 API_KEY。";
+    try {
+      const response = await fetch(url);
+      const data = await response.json();
+
+      const locations = findLocations(data);
+      const target = locations.find(item => item.LocationName === city);
+
+      if (!target) {
+        statusBox.textContent = `找不到 ${city} 的資料。`;
         statusBox.className = "error";
         return;
       }
 
-      const url = `${API_URL}?Authorization=${API_KEY}&format=JSON&sort=time`;
+      const parsedData = parseWeather(target);
+      const now = parsedData[0];
 
-      try {
-        const response = await fetch(url);
-        const data = await response.json();
-        const locations = findLocations(data);
-        const target = locations.find(item => item.LocationName === city);
-
-        if (!target) {
-          statusBox.textContent = `找不到 ${city} 的資料。`;
-          statusBox.className = "error";
-          return;
-        }
-
-        const parsedData = parseWeather(target);
-        const now = parsedData[0];
-
-        if (!now) {
-          statusBox.textContent = "有抓到資料，但沒有整理出天氣資料。";
-          statusBox.className = "error";
-          return;
-        }
-
-        statusBox.textContent = "資料載入成功";
-        statusBox.className = "loading";
-        currentIcon.textContent = weatherToIcon(now.weather);
-        currentText.textContent = `目前：${now.weather || "無資料"} / 降雨 ${now.pop || "-"}% / ${now.minTemp || "-"}°C - ${now.maxTemp || "-"}°C`;
-
-        if (Number(now.pop) >= 50 || (now.weather && now.weather.includes("雨"))) {
-          rainAlert.textContent = "出門記得帶傘喔!! ☂️";
-        } else {
-          rainAlert.textContent = "今天降雨機率較低 😊";
-        }
-
-        renderDays(parsedData);
-        renderChart(parsedData);
-      } catch (error) {
-        console.error(error);
-        statusBox.textContent = "讀取失敗，可能是 API_KEY 錯誤、網路問題，或瀏覽器 CORS 限制。";
+      if (!now) {
+        statusBox.textContent = "有抓到資料，但沒有整理出天氣資料。";
         statusBox.className = "error";
+        return;
       }
+
+      statusBox.textContent = "資料載入成功";
+      statusBox.className = "loading";
+
+      currentIcon.textContent = weatherToIcon(now.weather);
+
+      currentText.textContent =
+        `目前：${now.weather || "無資料"} / 降雨 ${now.pop || "-"}% / ${now.minTemp || "-"}°C - ${now.maxTemp || "-"}°C`;
+
+      if (Number(now.pop) >= 50 || (now.weather && now.weather.includes("雨"))) {
+        rainAlert.textContent = "出門記得帶傘喔!! ☂️";
+      } else {
+        rainAlert.textContent = "今天降雨機率較低 😊";
+      }
+
+      renderDays(parsedData);
+      renderChart(parsedData);
+    } catch (error) {
+      console.error(error);
+      statusBox.textContent = "讀取失敗，可能是 API_KEY 錯誤、網路問題，或瀏覽器 CORS 限制。";
+      statusBox.className = "error";
     }
-  </script>
+  }
+</script>
 </body>
 </html>
