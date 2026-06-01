@@ -6,6 +6,20 @@
   <title>雨日提醒您｜未來七天天氣預報</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
+    :root {
+      --bg-gradient: linear-gradient(135deg, #eef1ff 0%, #f8f8ff 100%);
+      --main-purple: #eef0ff;
+      --text-dark: #5f5f6f;
+      --text-title: #686878;
+      --accent-orange: #ffb45d;
+      --card-gray: #ececf4;
+      
+      /* 地圖顏色設定 */
+      --map-bg: #dcd9e8;
+      --map-hover: #bdafff;
+      --map-active: #9b86ff;
+    }
+
     * {
       box-sizing: border-box;
       margin: 0;
@@ -15,15 +29,15 @@
 
     body {
       min-height: 100vh;
-      background: linear-gradient(135deg, #eef1ff, #f8f8ff);
-      color: #5f5f6f;
+      background: var(--bg-gradient);
+      color: var(--text-dark);
       padding: 28px;
     }
 
     .page {
       max-width: 1180px;
       margin: 0 auto;
-      background: #eef0ff;
+      background: var(--main-purple);
       border-radius: 22px;
       padding: 28px;
       box-shadow: 0 16px 45px rgba(100, 105, 150, 0.18);
@@ -43,7 +57,7 @@
     h1 {
       font-size: 34px;
       letter-spacing: 2px;
-      color: #686878;
+      color: var(--text-title);
       text-shadow: 2px 2px 0 #ffffff;
     }
 
@@ -53,101 +67,139 @@
       border-radius: 28px;
       padding: 28px;
       display: grid;
-      grid-template-columns: 1fr 1.15fr;
+      grid-template-columns: 1.1fr 1fr;
       gap: 34px;
       min-height: 560px;
     }
 
+    /* 左側地圖區優化 */
     .map-area {
       position: relative;
-      min-height: 500px;
+      background: #fdfdfd;
+      border-radius: 20px;
+      border: 1px dashed #cbd5e0;
+      min-height: 520px;
       display: flex;
       flex-direction: column;
       align-items: center;
-      justify-content: center;
+      justify-content: flex-start;
+      padding-top: 40px;
     }
 
     .hint {
       position: absolute;
-      top: 0;
-      right: 24px;
+      top: 15px;
       font-weight: 700;
-      color: #686878;
+      color: var(--text-title);
       font-size: 15px;
+      background: rgba(238, 240, 255, 0.7);
+      padding: 4px 12px;
+      border-radius: 20px;
     }
 
-    .taiwan-map {
-      width: 260px;
-      height: 390px;
-      background: #b8b4ca;
-      clip-path: polygon(56% 1%, 67% 7%, 73% 17%, 71% 29%, 68% 39%, 67% 50%, 65% 60%, 62% 72%, 56% 87%, 48% 100%, 38% 91%, 29% 78%, 24% 64%, 22% 50%, 26% 37%, 33% 24%, 42% 11%);
+    /* 精準的 SVG 台灣地圖定位與擬真美化 */
+    .map-container {
+      width: 100%;
+      max-width: 340px;
+      height: 440px;
       position: relative;
-      filter: drop-shadow(0 8px 8px rgba(120, 115, 145, 0.28));
+      margin-top: 10px;
     }
 
-    .pin {
+    .map-container svg {
+      width: 100%;
+      height: 100%;
+      filter: drop-shadow(4px 8px 10px rgba(120, 115, 145, 0.25));
+    }
+
+    /* 地圖區塊樣式（預設無雨顏色） */
+    .county {
+      fill: var(--map-bg);
+      stroke: #ffffff;
+      stroke-width: 1.5;
+      cursor: pointer;
+      transition: fill 0.2s ease, stroke-width 0.2s ease;
+    }
+
+    .county:hover {
+      fill: var(--map-hover);
+      stroke: #fff;
+      stroke-width: 2.5;
+    }
+
+    /* 被選中縣市的樣式 */
+    .county.active {
+      fill: var(--map-active) !important;
+      stroke: #fff;
+      stroke-width: 3;
+    }
+
+    /* 浮動標籤（跟隨滑鼠或動態顯示） */
+    .map-ui-overlay {
       position: absolute;
-      top: 58px;
-      left: 140px;
-      transform: translate(-50%, -50%);
-      width: 54px;
-      height: 54px;
-      background: #ffb45d;
-      border-radius: 10px;
-      display: grid;
-      place-items: center;
-      color: #817e91;
-      font-size: 40px;
+      bottom: 15px;
+      left: 15px;
+      background: rgba(255, 255, 255, 0.9);
+      padding: 8px 14px;
+      border-radius: 12px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.08);
+      border: 1px solid #e2e8f0;
+      pointer-events: none;
     }
 
     .city-label {
-      position: absolute;
-      top: 78px;
-      left: 194px;
-      font-size: 22px;
-      color: #686878;
+      font-size: 18px;
+      color: #4a5568;
       font-weight: 800;
+      display: flex;
+      align-items: center;
+      gap: 4px;
     }
 
     .legend {
       position: absolute;
-      right: 22px;
-      bottom: 36px;
-      font-size: 14px;
-      color: #686878;
+      right: 15px;
+      bottom: 15px;
+      font-size: 13px;
+      color: var(--text-title);
+      background: rgba(255, 255, 255, 0.8);
+      padding: 8px;
+      border-radius: 10px;
     }
 
     .legend-title {
       font-weight: 800;
-      margin-bottom: 12px;
+      margin-bottom: 6px;
+      font-size: 12px;
     }
 
     .legend-item {
       display: flex;
       align-items: center;
-      gap: 10px;
-      margin: 8px 0;
+      gap: 8px;
+      margin: 4px 0;
       font-weight: 700;
     }
 
     .color-box {
-      width: 28px;
-      height: 28px;
-      border-radius: 8px;
+      width: 20px;
+      height: 20px;
+      border-radius: 5px;
       display: inline-block;
     }
 
     .rain-heavy { background: #e4575f; }
     .rain-light { background: #ffb45d; }
-    .rain-none { background: #eef0ff; }
+    .rain-none { background: var(--map-bg); }
 
+    /* 右側資訊欄 */
     .info-card {
-      background: #ececf4;
+      background: var(--card-gray);
       border-radius: 28px;
       padding: 28px 32px;
       display: flex;
       flex-direction: column;
-      gap: 20px;
+      gap: 16px;
     }
 
     .search-row {
@@ -157,7 +209,7 @@
       flex-wrap: wrap;
     }
 
-    select, input, button {
+    select, button {
       border: none;
       outline: none;
       border-radius: 14px;
@@ -165,14 +217,15 @@
       font-size: 16px;
     }
 
-    select, input {
+    select {
       background: #fff;
       color: #606070;
-      min-width: 160px;
+      min-width: 180px;
+      font-weight: 700;
     }
 
     button {
-      background: #ffb45d;
+      background: var(--accent-orange);
       color: #fff;
       font-weight: 800;
       cursor: pointer;
@@ -188,42 +241,48 @@
       display: flex;
       align-items: center;
       gap: 12px;
-      color: #686878;
-      font-size: 32px;
+      color: var(--text-title);
+      font-size: 30px;
       font-weight: 800;
+      border-bottom: 2px solid rgba(0,0,0,0.05);
+      padding-bottom: 5px;
     }
 
     .location-icon {
-      font-size: 38px;
+      font-size: 34px;
     }
 
     .current-weather {
       display: grid;
-      grid-template-columns: 150px 1fr;
+      grid-template-columns: 120px 1fr;
       align-items: center;
       gap: 16px;
+      background: #fff;
+      padding: 15px;
+      border-radius: 18px;
     }
 
     .big-weather-icon {
-      font-size: 96px;
+      font-size: 80px;
       text-align: center;
       line-height: 1;
     }
 
     .current-info {
-      font-size: 16px;
-      line-height: 1.7;
+      font-size: 15px;
+      line-height: 1.6;
       font-weight: 700;
     }
 
     .alert {
       color: #f25d5d;
-      font-size: 18px;
+      font-size: 17px;
       font-weight: 900;
+      margin-top: 4px;
     }
 
     .section-title {
-      font-size: 22px;
+      font-size: 20px;
       font-weight: 900;
       display: flex;
       align-items: center;
@@ -233,31 +292,31 @@
     .days {
       display: grid;
       grid-template-columns: repeat(4, 1fr);
-      gap: 12px;
+      gap: 10px;
     }
 
     .day-card {
       background: #fff;
       border-radius: 14px;
-      padding: 10px 6px;
+      padding: 10px 4px;
       text-align: center;
       min-height: 92px;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      box-shadow: 0 6px 14px rgba(120, 120, 150, 0.12);
+      box-shadow: 0 4px 10px rgba(120, 120, 150, 0.08);
     }
 
     .day-name {
-      font-size: 14px;
+      font-size: 13px;
       font-weight: 900;
       color: #747486;
     }
 
     .day-icon {
-      font-size: 36px;
-      margin: 3px 0;
+      font-size: 32px;
+      margin: 2px 0;
     }
 
     .day-temp {
@@ -269,12 +328,17 @@
       background: #fff;
       border-radius: 20px;
       padding: 16px;
-      min-height: 240px;
+      min-height: 220px;
+      flex-grow: 1;
     }
 
     .loading {
       font-weight: 800;
       color: #7a7890;
+      background: #fff;
+      padding: 8px 15px;
+      border-radius: 10px;
+      display: inline-block;
     }
 
     .error {
@@ -287,21 +351,9 @@
       .weather-panel {
         grid-template-columns: 1fr;
       }
-
       .map-area {
-        min-height: 360px;
+        min-height: 480px;
       }
-
-      .taiwan-map {
-        width: 210px;
-        height: 320px;
-      }
-
-      .legend {
-        position: static;
-        margin-top: 20px;
-      }
-
       .days {
         grid-template-columns: repeat(2, 1fr);
       }
@@ -317,45 +369,72 @@
 
     <section class="weather-panel">
       <div class="map-area">
-        <div class="hint">點擊縣市取得當地詳細天氣資訊</div>
-        <div class="taiwan-map">
-          <div class="pin">📍</div>
-          <div class="city-label" id="mapCity">桃園市</div>
+        <div class="hint">🎯 直接點擊地圖縣市切換預報</div>
+        
+        <div class="map-container">
+          <svg viewBox="0 0 400 600" xmlns="http://www.w3.org/2000/svg">
+            <path class="county" data-name="基隆市" d="M 285 45 Q 295 40 300 50 Q 290 60 280 55 Z" />
+            <path class="county" data-name="臺北市" d="M 260 55 Q 275 45 285 55 Q 275 75 260 65 Z" />
+            <path class="county" data-name="新北市" d="M 245 50 Q 265 30 290 45 Q 315 70 290 95 Q 260 85 245 50 Z" />
+            <path class="county" data-name="桃園市" d="M 215 65 Q 240 50 250 65 Q 240 95 210 85 Z" />
+            <path class="county" data-name="新竹市" d="M 195 85 Q 205 80 210 90 Q 200 95 195 85 Z" />
+            <path class="county" data-name="新竹縣" d="M 205 90 Q 230 80 240 100 Q 220 120 200 105 Z" />
+            <path class="county" data-name="苗栗縣" d="M 175 110 Q 210 100 220 125 Q 190 145 170 125 Z" />
+            <path class="county" data-name="臺中市" d="M 155 140 Q 200 120 235 145 Q 190 180 150 160 Z" />
+            <path class="county" data-name="彰化縣" d="M 135 170 Q 160 165 165 195 Q 140 205 130 185 Z" />
+            <path class="county" data-name="南投縣" d="M 165 175 Q 215 155 230 200 Q 185 240 160 210 Z" />
+            <path class="county" data-name="雲林縣" d="M 115 210 Q 155 205 155 235 Q 120 245 110 225 Z" />
+            <path class="county" data-name="嘉義市" d="M 130 245 Q 140 240 145 250 Q 135 255 130 245 Z" />
+            <path class="county" data-name="嘉義縣" d="M 105 240 Q 160 230 170 265 Q 130 280 100 260 Z" />
+            <path class="county" data-name="臺南市" d="M 90 275 Q 145 270 150 320 Q 100 330 85 295 Z" />
+            <path class="county" data-name="高雄市" d="M 110 325 Q 155 310 180 345 Q 140 430 110 400 Z" />
+            <path class="county" data-name="屏東縣" d="M 120 405 Q 150 410 155 460 Q 145 520 135 520 Q 110 450 120 405 Z" />
+            <path class="county" data-name="宜蘭縣" d="M 265 95 Q 300 90 310 125 Q 270 155 250 125 Z" />
+            <path class="county" data-name="花蓮縣" d="M 225 160 Q 260 150 250 260 Q 215 320 210 240 Z" />
+            <path class="county" data-name="臺東縣" d="M 175 325 Q 210 310 200 430 Q 160 460 155 425 Z" />
+            <path class="county" data-name="澎湖縣" d="M 40 230 Q 55 220 50 250 Q 35 250 40 230 Z" />
+            <path class="county" data-name="金門縣" d="M 30 130 Q 50 125 45 145 Q 25 145 30 130 Z" />
+            <path class="county" data-name="連江縣" d="M 80 40 Q 95 35 90 50 Q 75 50 80 40 Z" />
+          </svg>
+        </div>
+
+        <div class="map-ui-overlay">
+          <div class="city-label">📍 <span id="mapCity">桃園市</span></div>
         </div>
 
         <div class="legend">
-          <div class="legend-title">圖片會顯示當日降雨量顏色</div>
-          <div class="legend-item"><span class="color-box rain-heavy"></span>大雨</div>
-          <div class="legend-item"><span class="color-box rain-light"></span>小雨</div>
+          <div class="legend-title">降雨機率燈號</div>
+          <div class="legend-item"><span class="color-box rain-heavy"></span>高機率 (≥50%)</div>
+          <div class="legend-item"><span class="color-box rain-light"></span>低機率 (&lt;50%)</div>
           <div class="legend-item"><span class="color-box rain-none"></span>無雨</div>
         </div>
       </div>
 
       <div class="info-card">
         <div class="search-row">
-          <select id="citySelect">
-            <option>臺北市</option>
-            <option>新北市</option>
-            <option>桃園市</option>
-            <option>臺中市</option>
-            <option>臺南市</option>
-            <option>高雄市</option>
-            <option>基隆市</option>
-            <option>新竹縣</option>
-            <option>新竹市</option>
-            <option>苗栗縣</option>
-            <option>彰化縣</option>
-            <option>南投縣</option>
-            <option>雲林縣</option>
-            <option>嘉義縣</option>
-            <option>嘉義市</option>
-            <option>屏東縣</option>
-            <option>宜蘭縣</option>
-            <option>花蓮縣</option>
-            <option>臺東縣</option>
-            <option>澎湖縣</option>
-            <option>金門縣</option>
-            <option>連江縣</option>
+          <select id="citySelect" onchange="syncSelectToMap()">
+            <option value="臺北市">臺北市</option>
+            <option value="新北市">新北市</option>
+            <option value="桃園市">桃園市</option>
+            <option value="臺中市">臺中市</option>
+            <option value="臺南市">臺南市</option>
+            <option value="高雄市">高雄市</option>
+            <option value="基隆市">基隆市</option>
+            <option value="新竹縣">新竹縣</option>
+            <option value="新竹市">新竹市</option>
+            <option value="苗栗縣">苗栗縣</option>
+            <option value="彰化縣">彰化縣</option>
+            <option value="南投縣">南投縣</option>
+            <option value="雲林縣">雲林縣</option>
+            <option value="嘉義縣">嘉義縣</option>
+            <option value="嘉義市">嘉義市</option>
+            <option value="屏東縣">屏東縣</option>
+            <option value="宜蘭縣">宜蘭縣</option>
+            <option value="花蓮縣">花蓮縣</option>
+            <option value="臺東縣">臺東縣</option>
+            <option value="澎湖縣">澎湖縣</option>
+            <option value="金門縣">金門縣</option>
+            <option value="連江縣">連江縣</option>
           </select>
           <button onclick="loadWeather()">查詢天氣</button>
         </div>
@@ -365,13 +444,13 @@
           <span id="cityName">桃園市</span>
         </div>
 
-        <div id="status" class="loading">請先填入中央氣象署 API_KEY，再查詢天氣。</div>
+        <div id="status" class="loading">系統準備中...</div>
 
         <div class="current-weather">
           <div class="big-weather-icon" id="currentIcon">🌦️</div>
           <div class="current-info">
             <div id="currentText">目前：等待資料</div>
-            <div class="alert" id="rainAlert">出門記得帶傘喔!! ☂️</div>
+            <div class="alert" id="rainAlert">載入中...</div>
           </div>
         </div>
 
@@ -386,9 +465,7 @@
   </main>
 
   <script>
-  // 請換成你的中央氣象署 API 授權碼
-  // 注意：不要加「碼」這個字
-  const API_KEY = "CWA-C00C85F2-5345-4447-B50A-7EB2396408A1";
+  const API_KEY = "請換成你的中央氣象署API授權碼";
   const API_URL = "https://opendata.cwa.gov.tw/api/v1/rest/datastore/F-D0047-091";
 
   let weatherChart = null;
@@ -402,7 +479,34 @@
   const rainAlert = document.getElementById("rainAlert");
   const daysContainer = document.getElementById("daysContainer");
 
+  // 初始化選定
   citySelect.value = "桃園市";
+
+  // 綁定地圖點擊事件
+  document.querySelectorAll('.county').forEach(el => {
+    el.addEventListener('click', function() {
+      const targetCity = this.getAttribute('data-name');
+      citySelect.value = targetCity;
+      highlightMap(targetCity);
+      loadWeather();
+    });
+  });
+
+  // 當下拉選單改變時，同步加亮地圖
+  function syncSelectToMap() {
+    highlightMap(citySelect.value);
+    loadWeather();
+  }
+
+  // 地圖選中高亮邏輯
+  function highlightMap(cityNameStr) {
+    document.querySelectorAll('.county').forEach(el => el.classList.remove('active'));
+    const activeRoute = document.querySelector(`.county[data-name="${cityNameStr}"]`);
+    if(activeRoute) {
+      activeRoute.classList.add('active');
+    }
+    mapCity.textContent = cityNameStr;
+  }
 
   function weatherToIcon(text) {
     if (!text) return "🌤️";
@@ -416,11 +520,8 @@
 
   function getFirstValue(elementValue) {
     if (!elementValue || elementValue.length === 0) return "";
-
     const firstItem = elementValue[0];
-
     if (!firstItem) return "";
-
     return Object.values(firstItem)[0] || "";
   }
 
@@ -431,158 +532,101 @@
       if (obj.LocationName && obj.WeatherElement) {
         locations.push(obj);
       }
-
       Object.values(obj).forEach(value => findLocations(value, locations));
     }
-
     return locations;
   }
 
-  // 這裡會顯示：周一白天、周一晚上、周二白天、周二晚上
   function shortDate(dateString) {
     const date = new Date(dateString);
     const week = ["日", "一", "二", "三", "四", "五", "六"];
     const hour = date.getHours();
-
     const period = hour < 12 ? "白天" : "晚上";
-
     return `周${week[date.getDay()]}${period}`;
   }
 
   function parseWeather(location) {
     const result = {};
-
     location.WeatherElement.forEach(element => {
       const elementName = element.ElementName;
-
       element.Time.forEach(timeData => {
         const startTime = timeData.StartTime;
         const endTime = timeData.EndTime;
         const key = `${startTime}_${endTime}`;
 
         if (!result[key]) {
-          result[key] = {
-            startTime,
-            endTime,
-            weather: "",
-            maxTemp: "",
-            minTemp: "",
-            pop: "",
-            description: ""
-          };
+          result[key] = { startTime, endTime, weather: "", maxTemp: "", minTemp: "", pop: "", description: "" };
         }
-
         const value = getFirstValue(timeData.ElementValue);
-
-        if (elementName === "天氣現象") {
-          result[key].weather = value;
-        } else if (elementName === "最高溫度") {
-          result[key].maxTemp = value;
-        } else if (elementName === "最低溫度") {
-          result[key].minTemp = value;
-        } else if (elementName === "12小時降雨機率") {
-          result[key].pop = value;
-        } else if (elementName === "天氣預報綜合描述") {
-          result[key].description = value;
-        }
+        if (elementName === "天氣現象") result[key].weather = value;
+        else if (elementName === "最高溫度") result[key].maxTemp = value;
+        else if (elementName === "最低溫度") result[key].minTemp = value;
+        else if (elementName === "12小時降雨機率") result[key].pop = value;
+        else if (elementName === "天氣預報綜合描述") result[key].description = value;
       });
     });
-
     return Object.values(result).filter(item => item.weather || item.description);
   }
 
   function renderDays(data) {
     daysContainer.innerHTML = "";
-
-    // 中央氣象署是 12 小時一筆，所以前 7 筆會是：
-    // 周一白天、周一晚上、周二白天、周二晚上...
     const firstSeven = data.slice(0, 7);
-
     firstSeven.forEach(item => {
       const card = document.createElement("div");
       card.className = "day-card";
-
       card.innerHTML = `
         <div class="day-name">${shortDate(item.startTime)}</div>
         <div class="day-icon">${weatherToIcon(item.weather)}</div>
         <div class="day-temp">${item.minTemp || "-"}° / ${item.maxTemp || "-"}°</div>
       `;
-
       daysContainer.appendChild(card);
     });
   }
 
   function renderChart(data) {
-    // 不合併日期，保留 12 小時資料
     const firstSeven = data.slice(0, 7);
-
     const labels = firstSeven.map(item => shortDate(item.startTime));
     const maxTemps = firstSeven.map(item => Number(item.maxTemp || 0));
-    const rainPops = firstSeven.map(item => {
-      if (item.pop === "-") return 0;
-      return Number(item.pop || 0);
-    });
+    const rainPops = firstSeven.map(item => item.pop === "-" ? 0 : Number(item.pop || 0));
 
     const ctx = document.getElementById("weatherChart");
-
-    if (weatherChart) {
-      weatherChart.destroy();
-    }
+    if (weatherChart) weatherChart.destroy();
 
     weatherChart = new Chart(ctx, {
       type: "line",
       data: {
         labels,
         datasets: [
-          {
-            label: "最高溫度 °C",
-            data: maxTemps,
-            borderWidth: 3,
-            tension: 0.35,
-            yAxisID: "y"
-          },
-          {
-            label: "降雨機率 %",
-            data: rainPops,
-            borderWidth: 3,
-            tension: 0.35,
-            yAxisID: "y1"
-          }
+          { label: "最高溫度 °C", data: maxTemps, borderWidth: 3, tension: 0.35, yAxisID: "y", borderColor: "#fc8181" },
+          { label: "降雨機率 %", data: rainPops, borderWidth: 3, tension: 0.35, yAxisID: "y1", borderColor: "#63b3ed" }
         ]
       },
       options: {
         responsive: true,
         maintainAspectRatio: false,
-        plugins: {
-          legend: {
-            labels: {
-              font: {
-                size: 13,
-                weight: "bold"
-              }
-            }
-          }
-        },
         scales: {
-          y: {
-            beginAtZero: false,
-            position: "left",
-            title: {
-              display: true,
-              text: "溫度 °C"
-            }
-          },
-          y1: {
-            beginAtZero: true,
-            max: 100,
-            position: "right",
-            grid: {
-              drawOnChartArea: false
-            },
-            title: {
-              display: true,
-              text: "降雨機率 %"
-            }
+          y: { position: "left", title: { display: true, text: "溫度 °C" } },
+          y1: { beginAtZero: true, max: 100, position: "right", grid: { drawOnChartArea: false }, title: { display: true, text: "降雨機率 %" } }
+        }
+      }
+    });
+  }
+
+  // 根據當前降雨機率動態渲染全台地圖顏色
+  function updateMapColors(allLocations) {
+    document.querySelectorAll('.county').forEach(el => {
+      const cityNameStr = el.getAttribute('data-name');
+      const target = allLocations.find(item => item.LocationName === cityNameStr);
+      if (target) {
+        const parsed = parseWeather(target);
+        if (parsed.length > 0 && parsed[0].pop !== "-") {
+          const popVal = Number(parsed[0].pop);
+          if (popVal >= 50) {
+            el.style.fill = "#e4575f"; // 大雨
+          } else if (popVal > 0) {
+            el.style.fill = "#ffb45d"; // 小雨
+          } else {
+            el.style.fill = "#eef0ff"; // 無雨
           }
         }
       }
@@ -591,27 +635,24 @@
 
   async function loadWeather() {
     const city = citySelect.value;
-
     cityName.textContent = city;
     mapCity.textContent = city;
     statusBox.textContent = "資料載入中...";
     statusBox.className = "loading";
 
-    if (API_KEY === "請換成你的中央氣象署API授權碼") {
-      statusBox.textContent = "請先在程式碼裡填入你的中央氣象署 API_KEY。";
-      statusBox.className = "error";
-      return;
-    }
-
     const url = `${API_URL}?Authorization=${API_KEY}&format=JSON&sort=time`;
-
     try {
       const response = await fetch(url);
       const data = await response.json();
-
       const locations = findLocations(data);
-      const target = locations.find(item => item.LocationName === city);
+      
+      // 更新全台地圖的雨量預報狀態顏色
+      updateMapColors(locations);
+      
+      // 確保目前選中的縣市維持 active 亮藍色
+      highlightMap(city);
 
+      const target = locations.find(item => item.LocationName === city);
       if (!target) {
         statusBox.textContent = `找不到 ${city} 的資料。`;
         statusBox.className = "error";
@@ -628,27 +669,31 @@
       }
 
       statusBox.textContent = "資料載入成功";
-      statusBox.className = "loading";
+      statusBox.style.display = "none";
 
       currentIcon.textContent = weatherToIcon(now.weather);
-
-      currentText.textContent =
-        `目前：${now.weather || "無資料"} / 降雨 ${now.pop || "-"}% / ${now.minTemp || "-"}°C - ${now.maxTemp || "-"}°C`;
+      currentText.textContent = `目前：${now.weather || "無資料"} / 降雨 ${now.pop || "-"}% / ${now.minTemp || "-"}°C - ${now.maxTemp || "-"}°C`;
 
       if (Number(now.pop) >= 50 || (now.weather && now.weather.includes("雨"))) {
         rainAlert.textContent = "出門記得帶傘喔!! ☂️";
+        rainAlert.style.color = "#f25d5d";
       } else {
         rainAlert.textContent = "今天降雨機率較低 😊";
+        rainAlert.style.color = "#2b6cb0";
       }
 
       renderDays(parsedData);
       renderChart(parsedData);
     } catch (error) {
       console.error(error);
-      statusBox.textContent = "讀取失敗，可能是 API_KEY 錯誤、網路問題，或瀏覽器 CORS 限制。";
+      statusBox.textContent = "讀取失敗，請確認網路或 API 金鑰。";
       statusBox.className = "error";
+      statusBox.style.display = "block";
     }
   }
+
+  // 網頁開啟自動載入
+  loadWeather();
 </script>
 </body>
 </html>
