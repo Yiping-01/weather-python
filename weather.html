@@ -356,6 +356,94 @@
       border-radius: 16px;
     }
 
+
+    /* 情緒價值功能區 */
+    .emotion-card {
+      background: #fff;
+      border-radius: 18px;
+      padding: 16px 18px;
+      box-shadow: 0 4px 10px rgba(120, 120, 150, 0.08);
+      display: grid;
+      grid-template-columns: 72px 1fr;
+      gap: 14px;
+      align-items: center;
+    }
+
+    .companion-avatar {
+      width: 64px;
+      height: 64px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #eef0ff, #ffffff);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 38px;
+      box-shadow: inset 0 -6px 12px rgba(160, 160, 210, 0.18);
+    }
+
+    .emotion-title {
+      font-size: 15px;
+      font-weight: 900;
+      color: var(--text-title);
+      margin-bottom: 6px;
+    }
+
+    .emotion-text {
+      font-size: 14px;
+      line-height: 1.6;
+      color: #4f5268;
+      font-weight: 700;
+    }
+
+    .warm-reminder {
+      background: linear-gradient(135deg, #fff7ec, #ffffff);
+      border-left: 6px solid var(--accent-orange);
+      border-radius: 16px;
+      padding: 14px 16px;
+      color: #5f5f6f;
+      font-size: 14px;
+      line-height: 1.6;
+      font-weight: 800;
+      box-shadow: 0 4px 10px rgba(120, 120, 150, 0.08);
+    }
+
+    .activity-card {
+      background: #fff;
+      border-radius: 18px;
+      padding: 14px 16px;
+      box-shadow: 0 4px 10px rgba(120, 120, 150, 0.08);
+    }
+
+    .activity-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 10px;
+      flex-wrap: wrap;
+    }
+
+    .activity-header label {
+      font-weight: 900;
+      color: var(--text-title);
+      font-size: 15px;
+    }
+
+    #activitySelect {
+      min-width: 130px;
+      padding: 9px 12px;
+      font-size: 14px;
+      border-radius: 12px;
+      background: #f7f7ff;
+    }
+
+    .activity-message {
+      font-size: 14px;
+      line-height: 1.6;
+      color: #4f5268;
+      font-weight: 700;
+    }
+
     .loading {
       font-weight: 800;
       color: #7a7890;
@@ -461,6 +549,36 @@
           </div>
         </div>
 
+        <div class="warm-reminder" id="warmReminder">
+          今日暖心提醒：正在為你準備今天的天氣小提醒...
+        </div>
+
+        <div class="emotion-card">
+          <div class="companion-avatar" id="companionIcon">☁️</div>
+          <div>
+            <div class="emotion-title" id="companionName">雲朵小助手</div>
+            <div class="emotion-text" id="companionText">
+              我會根據天氣提醒你今天適合怎麼出門，也記得好好照顧自己。
+            </div>
+          </div>
+        </div>
+
+        <div class="activity-card">
+          <div class="activity-header">
+            <label for="activitySelect">今天你要做什麼？</label>
+            <select id="activitySelect">
+              <option value="上課">上課</option>
+              <option value="上班">上班</option>
+              <option value="約會">約會</option>
+              <option value="旅行">旅行</option>
+              <option value="宅在家">宅在家</option>
+            </select>
+          </div>
+          <div class="activity-message" id="activityMessage">
+            選一個今天的情境，我會給你更貼近生活的小提醒。
+          </div>
+        </div>
+
         <div class="section-title">未來七日天氣 ☁️</div>
         <div class="days" id="daysContainer"></div>
 
@@ -472,7 +590,7 @@
   </main>
 
   <script>
-    const API_KEY = "請輸入API";
+    const API_KEY = "CWA-A369996B-2E49-49D7-AE5C-FDAC712BB9FC";
     const API_URL = "https://opendata.cwa.gov.tw/api/v1/rest/datastore/F-D0047-091";
 
     let weatherChart = null;
@@ -487,7 +605,14 @@
     const rainAlert = document.getElementById("rainAlert");
     const daysContainer = document.getElementById("daysContainer");
     const pythonChart = document.getElementById("pythonChart");
+    const warmReminder = document.getElementById("warmReminder");
+    const companionIcon = document.getElementById("companionIcon");
+    const companionName = document.getElementById("companionName");
+    const companionText = document.getElementById("companionText");
+    const activitySelect = document.getElementById("activitySelect");
+    const activityMessage = document.getElementById("activityMessage");
 
+    let latestWeatherNow = null;
 
     citySelect.value = "桃園市";
 
@@ -615,6 +740,9 @@
       if (text.includes("晴")) return "☀️";
       return "🌤️";
     }
+    function pickRandom(list) {
+      return list[Math.floor(Math.random() * list.length)];
+    }
 
     function getFirstValue(elementValue) {
       if (!elementValue || elementValue.length === 0) return "";
@@ -732,23 +860,23 @@
     }
 
     function renderDays(data) {
-  daysContainer.innerHTML = "";
+      daysContainer.innerHTML = "";
 
-  const firstSevenDays = getDailyData(data);
+      const firstSevenDays = getDailyData(data);
 
-  firstSevenDays.forEach(item => {
-    const card = document.createElement("div");
-    card.className = "day-card";
+      firstSevenDays.forEach(item => {
+        const card = document.createElement("div");
+        card.className = "day-card";
 
-    card.innerHTML = `
+        card.innerHTML = `
       <div class="day-name">${shortDayOnly(item.startTime)}</div>
       <div class="day-icon">${weatherToIcon(item.weather)}</div>
       <div class="day-temp">${item.minTemp || "-"}° / ${item.maxTemp || "-"}°</div>
     `;
 
-    daysContainer.appendChild(card);
-  });
-}
+        daysContainer.appendChild(card);
+      });
+    }
 
     function renderChart(data) {
       const firstSeven = data.slice(0, 7);
@@ -844,6 +972,100 @@
       });
     }
 
+
+    function getPopValue(now) {
+      if (!now || now.pop === "-" || now.pop === "") return 0;
+      return Number(now.pop || 0);
+    }
+
+    function getTempValue(now) {
+      if (!now) return 0;
+      return Number(now.maxTemp || now.minTemp || 0);
+    }
+
+    function updateEmotionFeatures(now) {
+      latestWeatherNow = now;
+
+      const pop = getPopValue(now);
+      const maxTemp = getTempValue(now);
+      const weather = now && now.weather ? now.weather : "";
+      const activity = activitySelect ? activitySelect.value : "上課";
+
+      let warmText = "";
+      let icon = "☁️";
+      let name = "雲朵小助手";
+      let companion = "";
+
+      if (pop >= 70 || weather.includes("大雨") || weather.includes("豪雨")) {
+        icon = "🌧️";
+        name = "雨滴小精靈";
+        warmText = "今日暖心提醒：雨勢可能比較明顯，出門慢慢來，安全比準時更重要。";
+        companion = "今天外面的雨比較有存在感，我會提醒你帶傘，也提醒你別急著趕路。";
+      } else if (pop >= 40 || weather.includes("雨")) {
+        icon = "🌂";
+        name = "雨傘小管家";
+        warmText = "今日暖心提醒：今天可能會下點雨，帶把傘會讓你安心很多。";
+        companion = "我幫你把雨傘放進提醒清單了，今天也要把自己照顧好。";
+      } else if (maxTemp >= 33) {
+        icon = "☀️";
+        name = "晴天小太陽";
+        warmText = "今日暖心提醒：今天溫度偏高，記得補水，也別讓自己太累。";
+        companion = "陽光很努力，你也很努力。出門記得帶水，給自己一點休息時間。";
+      } else if (weather.includes("陰") || weather.includes("多雲")) {
+        icon = "☁️";
+        name = "雲朵小助手";
+        warmText = "今日暖心提醒：今天雲比較多，很適合放慢步調，把事情一件一件做好。";
+        companion = "陰天不代表壞心情，今天也可以溫柔地完成自己的節奏。";
+      } else {
+        icon = "🌤️";
+        name = "天氣小夥伴";
+        warmText = "今日暖心提醒：今天看起來是適合出門的一天，願你一路順利。";
+        companion = "天氣看起來蠻穩定的，適合帶著輕鬆一點的心情出門。";
+      }
+
+      warmReminder.textContent = warmText;
+      companionIcon.textContent = icon;
+      companionName.textContent = name;
+      companionText.textContent = companion;
+
+      updateActivityMessage(now);
+    }
+
+    function updateActivityMessage(now) {
+      const activity = activitySelect ? activitySelect.value : "上課";
+      const pop = getPopValue(now || latestWeatherNow);
+      const weather = now && now.weather ? now.weather : (latestWeatherNow && latestWeatherNow.weather ? latestWeatherNow.weather : "");
+
+      const rainy = pop >= 40 || weather.includes("雨");
+
+      const messages = {
+        "上課": rainy
+          ? "上課提醒：今天路上可能比較濕，建議提早一點出門，書包也可以多放一把摺疊傘。"
+          : "上課提醒：今天通勤壓力比較小，帶著清爽的心情去上課吧。",
+        "上班": rainy
+          ? "上班提醒：雨天通勤容易塞車或延誤，提早出門會讓今天更從容。"
+          : "上班提醒：天氣相對穩定，今天可以把節奏排得舒服一點。",
+        "約會": rainy
+          ? "約會提醒：帶傘也可以是一種貼心，雨天的行程也能很浪漫。"
+          : "約會提醒：今天很適合出門見面，記得留一點時間好好享受相處。",
+        "旅行": rainy
+          ? "旅行提醒：建議準備雨具和備用襪子，行程可以多排一些室內景點。"
+          : "旅行提醒：天氣不錯，適合拍照和散步，但還是記得補水。",
+        "宅在家": rainy
+          ? "宅家提醒：今天很適合待在室內，泡杯熱飲，讓自己好好休息一下。"
+          : "宅家提醒：即使不出門，也可以打開窗戶透透氣，給自己一點陽光。"
+      };
+
+      activityMessage.textContent = messages[activity] || "今天也要好好照顧自己。";
+    }
+
+    if (activitySelect) {
+      activitySelect.addEventListener("change", function () {
+        updateActivityMessage(latestWeatherNow);
+      });
+    }
+
+
     async function loadWeather() {
       const city = citySelect.value;
 
@@ -906,6 +1128,8 @@
           rainAlert.textContent = "今天降雨機率較低 😊";
           rainAlert.style.color = "#2b6cb0";
         }
+
+        updateEmotionFeatures(now);
 
         renderDays(parsedData);
         //renderChart(parsedData);
