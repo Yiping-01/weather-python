@@ -346,16 +346,8 @@
       padding: 16px;
       min-height: 220px;
       flex-grow: 1;
+      position: relative;
     }
-
-    .python-chart {
-      width: 100%;
-      height: 100%;
-      object-fit: contain;
-      display: block;
-      border-radius: 16px;
-    }
-
 
     /* 情緒價值功能區 */
     .emotion-card {
@@ -583,14 +575,14 @@
         <div class="days" id="daysContainer"></div>
 
         <div class="chart-box">
-          <img id="pythonChart" src="chart_桃園市.png" alt="Python 產生的天氣圖表" class="python-chart">
+          <canvas id="weatherChart"></canvas>
         </div>
       </div>
     </section>
   </main>
 
   <script>
-    const API_KEY = "CWA-A369996B-2E49-49D7-AE5C-FDAC712BB9FC";
+    const API_KEY = "CWA-C00C85F2-5345-4447-B50A-7EB2396408A1";
     const API_URL = "https://opendata.cwa.gov.tw/api/v1/rest/datastore/F-D0047-091";
 
     let weatherChart = null;
@@ -604,7 +596,6 @@
     const currentText = document.getElementById("currentText");
     const rainAlert = document.getElementById("rainAlert");
     const daysContainer = document.getElementById("daysContainer");
-    const pythonChart = document.getElementById("pythonChart");
     const warmReminder = document.getElementById("warmReminder");
     const companionIcon = document.getElementById("companionIcon");
     const companionName = document.getElementById("companionName");
@@ -740,9 +731,6 @@
       if (text.includes("晴")) return "☀️";
       return "🌤️";
     }
-    function pickRandom(list) {
-      return list[Math.floor(Math.random() * list.length)];
-    }
 
     function getFirstValue(elementValue) {
       if (!elementValue || elementValue.length === 0) return "";
@@ -770,6 +758,7 @@
       const period = hour < 12 ? "白天" : "晚上";
       return `周${week[date.getDay()]}${period}`;
     }
+
     function shortDayOnly(dateString) {
       const date = new Date(dateString);
       const week = ["日", "一", "二", "三", "四", "五", "六"];
@@ -904,7 +893,8 @@
               borderWidth: 3,
               tension: 0.35,
               yAxisID: "y",
-              borderColor: "#fc8181"
+              borderColor: "#fc8181",
+              backgroundColor: "#fc8181"
             },
             {
               label: "降雨機率 %",
@@ -912,7 +902,8 @@
               borderWidth: 3,
               tension: 0.35,
               yAxisID: "y1",
-              borderColor: "#63b3ed"
+              borderColor: "#63b3ed",
+              backgroundColor: "#63b3ed"
             }
           ]
         },
@@ -971,7 +962,6 @@
         }
       });
     }
-
 
     function getPopValue(now) {
       if (!now || now.pop === "-" || now.pop === "") return 0;
@@ -1065,14 +1055,11 @@
       });
     }
 
-
     async function loadWeather() {
       const city = citySelect.value;
 
       cityName.textContent = city;
       mapCity.textContent = city;
-      pythonChart.src = `chart_${city}.png?t=${new Date().getTime()}`;
-      pythonChart.alt = `${city} 未來七天天氣圖表`;
 
       statusBox.textContent = "資料載入中...";
       statusBox.className = "loading";
@@ -1130,9 +1117,11 @@
         }
 
         updateEmotionFeatures(now);
-
         renderDays(parsedData);
-        //renderChart(parsedData);
+        
+        // 已經將註解拿掉，啟用動態繪圖！
+        renderChart(parsedData);
+        
       } catch (error) {
         console.error(error);
         statusBox.textContent = "讀取失敗，請確認網路或 API 金鑰。";
