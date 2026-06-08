@@ -349,7 +349,6 @@
       position: relative;
     }
 
-    /* 情緒價值功能區 */
     .emotion-card {
       background: #fff;
       border-radius: 18px;
@@ -582,9 +581,7 @@
   </main>
 
   <script>
-    const API_KEY = "CWA-C00C85F2-5345-4447-B50A-7EB2396408A1";
-    const API_URL = "https://opendata.cwa.gov.tw/api/v1/rest/datastore/F-D0047-091";
-
+    // 【修改重點】原先的 API 金鑰已完全移除，改向本地運行的 Python Flask 後端索取資料
     let weatherChart = null;
     let allWeatherLocations = [];
 
@@ -608,33 +605,15 @@
     citySelect.value = "桃園市";
 
     const countyNameMap = {
-      "台北市": "臺北市",
-      "臺北市": "臺北市",
-      "新北市": "新北市",
-      "桃園縣": "桃園市",
-      "桃園市": "桃園市",
-      "台中市": "臺中市",
-      "臺中市": "臺中市",
-      "台南市": "臺南市",
-      "臺南市": "臺南市",
-      "高雄市": "高雄市",
-      "基隆市": "基隆市",
-      "新竹縣": "新竹縣",
-      "新竹市": "新竹市",
-      "苗栗縣": "苗栗縣",
-      "彰化縣": "彰化縣",
-      "南投縣": "南投縣",
-      "雲林縣": "雲林縣",
-      "嘉義縣": "嘉義縣",
-      "嘉義市": "嘉義市",
-      "屏東縣": "屏東縣",
-      "宜蘭縣": "宜蘭縣",
-      "花蓮縣": "花蓮縣",
-      "台東縣": "臺東縣",
-      "臺東縣": "臺東縣",
-      "澎湖縣": "澎湖縣",
-      "金門縣": "金門縣",
-      "連江縣": "連江縣"
+      "台北市": "臺北市", "臺北市": "臺北市", "新北市": "新北市",
+      "桃園縣": "桃園市", "桃園市": "桃園市", "台中市": "臺中市",
+      "臺中市": "臺中市", "台南市": "臺南市", "臺南市": "臺南市",
+      "高雄市": "高雄市", "基隆市": "基隆市", "新竹縣": "新竹縣",
+      "新竹市": "新竹市", "苗栗縣": "苗栗縣", "彰化縣": "彰化縣",
+      "南投縣": "南投縣", "雲林縣": "雲林縣", "嘉義縣": "嘉義縣",
+      "嘉義市": "嘉義市", "屏東縣": "屏東縣", "宜蘭縣": "宜蘭縣",
+      "花蓮縣": "花蓮縣", "台東縣": "臺東縣", "臺東縣": "臺東縣",
+      "澎湖縣": "澎湖縣", "金門縣": "金門縣", "連江縣": "連江縣"
     };
 
     function normalizeCountyName(name) {
@@ -643,18 +622,9 @@
 
     function getGeoCountyName(feature) {
       const p = feature.properties || {};
-
       return normalizeCountyName(
-        p.COUNTYNAME ||
-        p.COUNTY_NAME ||
-        p.COUNTY ||
-        p.COUNTY_NAM ||
-        p.COUNTYID ||
-        p.name ||
-        p.NAME ||
-        p.Name ||
-        p.county ||
-        ""
+        p.COUNTYNAME || p.COUNTY_NAME || p.COUNTY || p.COUNTY_NAM ||
+        p.COUNTYID || p.name || p.NAME || p.Name || p.county || ""
       );
     }
 
@@ -662,17 +632,14 @@
       const svg = d3.select("#taiwanMap");
       const width = 390;
       const height = 500;
-
       svg.attr("viewBox", `0 0 ${width} ${height}`);
 
       try {
         const geoData = await d3.json("taiwan-county.geojson.json");
-
         const projection = d3.geoMercator().fitSize([width, height], geoData);
         const path = d3.geoPath().projection(projection);
 
-        svg
-          .selectAll("path")
+        svg.selectAll("path")
           .data(geoData.features)
           .join("path")
           .attr("class", "county")
@@ -680,9 +647,7 @@
           .attr("data-name", d => getGeoCountyName(d))
           .on("click", function (event, d) {
             const city = getGeoCountyName(d);
-
             if (!city) return;
-
             citySelect.value = city;
             highlightMap(city);
             loadWeather();
@@ -698,7 +663,7 @@
         highlightMap(citySelect.value);
       } catch (error) {
         console.error(error);
-        statusBox.textContent = "地圖讀取失敗，請確認 taiwan-county.geojson.json 是否跟 weather.html 放在同一個資料夾。";
+        statusBox.textContent = "地圖讀取失敗，請確認 taiwan-county.geojson.json 是否存在。";
         statusBox.className = "error";
       }
     }
@@ -709,16 +674,9 @@
     }
 
     function highlightMap(cityNameStr) {
-      document.querySelectorAll(".county").forEach(el => {
-        el.classList.remove("active");
-      });
-
+      document.querySelectorAll(".county").forEach(el => el.classList.remove("active"));
       const activeCounty = document.querySelector(`.county[data-name="${cityNameStr}"]`);
-
-      if (activeCounty) {
-        activeCounty.classList.add("active");
-      }
-
+      if (activeCounty) activeCounty.classList.add("active");
       mapCity.textContent = cityNameStr;
     }
 
@@ -754,25 +712,21 @@
     function shortDate(dateString) {
       const date = new Date(dateString);
       const week = ["日", "一", "二", "三", "四", "五", "六"];
-      const hour = date.getHours();
-      const period = hour < 12 ? "白天" : "晚上";
+      const period = date.getHours() < 12 ? "白天" : "晚上";
       return `周${week[date.getDay()]}${period}`;
     }
 
     function shortDayOnly(dateString) {
       const date = new Date(dateString);
       const week = ["日", "一", "二", "三", "四", "五", "六"];
-
       return `周${week[date.getDay()]}`;
     }
 
     function getDailyData(data) {
       const dailyMap = {};
-
       data.forEach(item => {
         const date = new Date(item.startTime);
         const dateKey = date.toISOString().split("T")[0];
-
         const maxTemp = Number(item.maxTemp || 0);
         const minTemp = Number(item.minTemp || 999);
         const pop = item.pop === "-" || item.pop === "" ? 0 : Number(item.pop || 0);
@@ -790,79 +744,47 @@
           dailyMap[dateKey].maxTemp = Math.max(dailyMap[dateKey].maxTemp, maxTemp);
           dailyMap[dateKey].minTemp = Math.min(dailyMap[dateKey].minTemp, minTemp);
           dailyMap[dateKey].pop = Math.max(dailyMap[dateKey].pop, pop);
-
-          if (item.weather && item.weather.includes("雨")) {
-            dailyMap[dateKey].weather = item.weather;
-          } else if (!dailyMap[dateKey].weather && item.weather) {
-            dailyMap[dateKey].weather = item.weather;
-          }
-
-          if (!dailyMap[dateKey].description && item.description) {
-            dailyMap[dateKey].description = item.description;
-          }
+          if (item.weather && item.weather.includes("雨")) dailyMap[dateKey].weather = item.weather;
+          if (!dailyMap[dateKey].description && item.description) dailyMap[dateKey].description = item.description;
         }
       });
-
       return Object.values(dailyMap).slice(0, 7);
     }
 
     function parseWeather(location) {
       const result = {};
-
       location.WeatherElement.forEach(element => {
         const elementName = element.ElementName;
-
         element.Time.forEach(timeData => {
           const startTime = timeData.StartTime;
           const endTime = timeData.EndTime;
           const key = `${startTime}_${endTime}`;
 
           if (!result[key]) {
-            result[key] = {
-              startTime,
-              endTime,
-              weather: "",
-              maxTemp: "",
-              minTemp: "",
-              pop: "",
-              description: ""
-            };
+            result[key] = { startTime, endTime, weather: "", maxTemp: "", minTemp: "", pop: "", description: "" };
           }
-
           const value = getFirstValue(timeData.ElementValue);
-
-          if (elementName === "天氣現象") {
-            result[key].weather = value;
-          } else if (elementName === "最高溫度") {
-            result[key].maxTemp = value;
-          } else if (elementName === "最低溫度") {
-            result[key].minTemp = value;
-          } else if (elementName === "12小時降雨機率") {
-            result[key].pop = value;
-          } else if (elementName === "天氣預報綜合描述") {
-            result[key].description = value;
-          }
+          if (elementName === "天氣現象") result[key].weather = value;
+          else if (elementName === "最高溫度") result[key].maxTemp = value;
+          else if (elementName === "最低溫度") result[key].minTemp = value;
+          else if (elementName === "12小時降雨機率") result[key].pop = value;
+          else if (elementName === "天氣預報綜合描述") result[key].description = value;
         });
       });
-
       return Object.values(result).filter(item => item.weather || item.description);
     }
 
     function renderDays(data) {
       daysContainer.innerHTML = "";
-
       const firstSevenDays = getDailyData(data);
-
       firstSevenDays.forEach(item => {
         const card = document.createElement("div");
         card.className = "day-card";
-
         card.innerHTML = `
-      <div class="day-name">${shortDayOnly(item.startTime)}</div>
-      <div class="day-icon">${weatherToIcon(item.weather)}</div>
-      <div class="day-temp">${item.minTemp || "-"}° / ${item.maxTemp || "-"}°</div>
-    `;
-
+          <div class="day-name">${shortDayOnly(item.startTime)}</div>
+          <div class="day-icon">${weatherToIcon(item.weather)}</div>
+          <div class="day-temp">${item.minTemp || "-"}° / ${item.maxTemp || "-"}°</div>
+        `;
         daysContainer.appendChild(card);
       });
     }
@@ -871,65 +793,26 @@
       const firstSeven = data.slice(0, 7);
       const labels = firstSeven.map(item => shortDate(item.startTime));
       const maxTemps = firstSeven.map(item => Number(item.maxTemp || 0));
-      const rainPops = firstSeven.map(item => {
-        if (item.pop === "-") return 0;
-        return Number(item.pop || 0);
-      });
-
+      const rainPops = firstSeven.map(item => item.pop === "-" ? 0 : Number(item.pop || 0));
       const ctx = document.getElementById("weatherChart");
 
-      if (weatherChart) {
-        weatherChart.destroy();
-      }
+      if (weatherChart) weatherChart.destroy();
 
       weatherChart = new Chart(ctx, {
         type: "line",
         data: {
           labels,
           datasets: [
-            {
-              label: "最高溫度 °C",
-              data: maxTemps,
-              borderWidth: 3,
-              tension: 0.35,
-              yAxisID: "y",
-              borderColor: "#fc8181",
-              backgroundColor: "#fc8181"
-            },
-            {
-              label: "降雨機率 %",
-              data: rainPops,
-              borderWidth: 3,
-              tension: 0.35,
-              yAxisID: "y1",
-              borderColor: "#63b3ed",
-              backgroundColor: "#63b3ed"
-            }
+            { label: "最高溫度 °C", data: maxTemps, borderWidth: 3, tension: 0.35, yAxisID: "y", borderColor: "#fc8181", backgroundColor: "#fc8181" },
+            { label: "降雨機率 %", data: rainPops, borderWidth: 3, tension: 0.35, yAxisID: "y1", borderColor: "#63b3ed", backgroundColor: "#63b3ed" }
           ]
         },
         options: {
           responsive: true,
           maintainAspectRatio: false,
           scales: {
-            y: {
-              position: "left",
-              title: {
-                display: true,
-                text: "溫度 °C"
-              }
-            },
-            y1: {
-              beginAtZero: true,
-              max: 100,
-              position: "right",
-              grid: {
-                drawOnChartArea: false
-              },
-              title: {
-                display: true,
-                text: "降雨機率 %"
-              }
-            }
+            y: { position: "left", title: { display: true, text: "溫度 °C" } },
+            y1: { beginAtZero: true, max: 100, position: "right", grid: { drawOnChartArea: false }, title: { display: true, text: "降雨機率 %" } }
           }
         }
       });
@@ -939,24 +822,14 @@
       document.querySelectorAll(".county").forEach(el => {
         const cityNameStr = el.getAttribute("data-name");
         const target = allLocations.find(item => item.LocationName === cityNameStr);
-
-        if (!target) {
-          el.style.fill = "#ffffff";
-          return;
-        }
+        if (!target) { el.style.fill = "#ffffff"; return; }
 
         const parsed = parseWeather(target);
-
         if (parsed.length > 0 && parsed[0].pop !== "-") {
           const popVal = Number(parsed[0].pop);
-
-          if (popVal >= 50) {
-            el.style.fill = "#ffd6d9";
-          } else if (popVal > 0) {
-            el.style.fill = "#ffe2b8";
-          } else {
-            el.style.fill = "#ffffff";
-          }
+          if (popVal >= 50) el.style.fill = "#ffd6d9";
+          else if (popVal > 0) el.style.fill = "#ffe2b8";
+          else el.style.fill = "#ffffff";
         } else {
           el.style.fill = "#ffffff";
         }
@@ -975,40 +848,30 @@
 
     function updateEmotionFeatures(now) {
       latestWeatherNow = now;
-
       const pop = getPopValue(now);
       const maxTemp = getTempValue(now);
       const weather = now && now.weather ? now.weather : "";
-      const activity = activitySelect ? activitySelect.value : "上課";
 
-      let warmText = "";
-      let icon = "☁️";
-      let name = "雲朵小助手";
-      let companion = "";
+      let warmText = "", icon = "☁️", name = "雲朵小助手", companion = "";
 
       if (pop >= 70 || weather.includes("大雨") || weather.includes("豪雨")) {
-        icon = "🌧️";
-        name = "雨滴小精靈";
+        icon = "🌧️"; name = "雨滴小精靈";
         warmText = "今日暖心提醒：雨勢可能比較明顯，出門慢慢來，安全比準時更重要。";
         companion = "今天外面的雨比較有存在感，我會提醒你帶傘，也提醒你別急著趕路。";
       } else if (pop >= 40 || weather.includes("雨")) {
-        icon = "🌂";
-        name = "雨傘小管家";
+        icon = "🌂"; name = "雨傘小管家";
         warmText = "今日暖心提醒：今天可能會下點雨，帶把傘會讓你安心很多。";
         companion = "我幫你把雨傘放進提醒清單了，今天也要把自己照顧好。";
       } else if (maxTemp >= 33) {
-        icon = "☀️";
-        name = "晴天小太陽";
+        icon = "☀️"; name = "晴天小太陽";
         warmText = "今日暖心提醒：今天溫度偏高，記得補水，也別讓自己太累。";
         companion = "陽光很努力，你也很努力。出門記得帶水，給自己一點休息時間。";
       } else if (weather.includes("陰") || weather.includes("多雲")) {
-        icon = "☁️";
-        name = "雲朵小助手";
+        icon = "☁️"; name = "雲朵小助手";
         warmText = "今日暖心提醒：今天雲比較多，很適合放慢步調，把事情一件一件做好。";
         companion = "陰天不代表壞心情，今天也可以溫柔地完成自己的節奏。";
       } else {
-        icon = "🌤️";
-        name = "天氣小夥伴";
+        icon = "🌤️"; name = "天氣小夥伴";
         warmText = "今日暖心提醒：今天看起來是適合出門的一天，願你一路順利。";
         companion = "天氣看起來蠻穩定的，適合帶著輕鬆一點的心情出門。";
       }
@@ -1017,7 +880,6 @@
       companionIcon.textContent = icon;
       companionName.textContent = name;
       companionText.textContent = companion;
-
       updateActivityMessage(now);
     }
 
@@ -1025,27 +887,15 @@
       const activity = activitySelect ? activitySelect.value : "上課";
       const pop = getPopValue(now || latestWeatherNow);
       const weather = now && now.weather ? now.weather : (latestWeatherNow && latestWeatherNow.weather ? latestWeatherNow.weather : "");
-
       const rainy = pop >= 40 || weather.includes("雨");
 
       const messages = {
-        "上課": rainy
-          ? "上課提醒：今天路上可能比較濕，建議提早一點出門，書包也可以多放一把摺疊傘。"
-          : "上課提醒：今天通勤壓力比較小，帶著清爽的心情去上課吧。",
-        "上班": rainy
-          ? "上班提醒：雨天通勤容易塞車或延誤，提早出門會讓今天更從容。"
-          : "上班提醒：天氣相對穩定，今天可以把節奏排得舒服一點。",
-        "約會": rainy
-          ? "約會提醒：帶傘也可以是一種貼心，雨天的行程也能很浪漫。"
-          : "約會提醒：今天很適合出門見面，記得留一點時間好好享受相處。",
-        "旅行": rainy
-          ? "旅行提醒：建議準備雨具和備用襪子，行程可以多排一些室內景點。"
-          : "旅行提醒：天氣不錯，適合拍照和散步，但還是記得補水。",
-        "宅在家": rainy
-          ? "宅家提醒：今天很適合待在室內，泡杯熱飲，讓自己好好休息一下。"
-          : "宅家提醒：即使不出門，也可以打開窗戶透透氣，給自己一點陽光。"
+        "上課": rainy ? "上課提醒：今天路上可能比較濕，建議提早一點出門，書包也可以多放一把摺疊傘。" : "上課提醒：今天通勤壓力比較小，帶著清爽的心情去上課吧。",
+        "上班": rainy ? "上班提醒：雨天通勤容易塞車或延誤，提早出門會讓今天更從容。" : "上班提醒：天氣相對穩定，今天可以把節奏排得舒服一點。",
+        "約會": rainy ? "約會提醒：帶傘也可以是一種貼心，雨天的行程也能很浪漫。" : "約會提醒：今天很適合出門見面，記得留一點時間好好享受相處。",
+        "旅行": rainy ? "旅行提醒：建議準備雨具和備用襪子，行程可以多排一些室內景點。" : "旅行提醒：天氣不錯，適合拍照和散步，但還是記得補水。",
+        "宅在家": rainy ? "宅家提醒：今天很適合待在室內，泡杯熱飲，讓自己好好休息一下。" : "宅家提醒：即使不出門，也可以打開窗戶透透氣，給自己一點陽光。"
       };
-
       activityMessage.textContent = messages[activity] || "今天也要好好照顧自己。";
     }
 
@@ -1055,9 +905,9 @@
       });
     }
 
+    // 【修改重點】改向剛才建立的 Flask 後端網址 (Port 5000) 索取資料
     async function loadWeather() {
       const city = citySelect.value;
-
       cityName.textContent = city;
       mapCity.textContent = city;
 
@@ -1065,26 +915,25 @@
       statusBox.className = "loading";
       statusBox.style.display = "inline-block";
 
-      if (API_KEY === "請換成你的中央氣象署API授權碼") {
-        statusBox.textContent = "請先在程式碼裡填入你的中央氣象署 API_KEY。";
-        statusBox.className = "error";
-        return;
-      }
-
-      const url = `${API_URL}?Authorization=${API_KEY}&format=JSON&sort=time`;
+      const url = "http://127.0.0.1:5000/api/get-cwa-weather";
 
       try {
         const response = await fetch(url);
         const data = await response.json();
-        const locations = findLocations(data);
+        
+        if (data.error) {
+          statusBox.textContent = data.error;
+          statusBox.className = "error";
+          return;
+        }
 
+        const locations = findLocations(data);
         allWeatherLocations = locations;
 
         updateMapColors(locations);
         highlightMap(city);
 
         const target = locations.find(item => item.LocationName === city);
-
         if (!target) {
           statusBox.textContent = `找不到 ${city} 的資料。`;
           statusBox.className = "error";
@@ -1104,11 +953,9 @@
         statusBox.style.display = "none";
 
         currentIcon.textContent = weatherToIcon(now.weather);
+        currentText.textContent = `目前：${now.weather || "無資料"} / 降雨 ${now.pop || "-"}% / ${now.minTemp || "-"}°C - ${now.maxTemp || "-"}°C`;
 
-        currentText.textContent =
-          `目前：${now.weather || "無資料"} / 降雨 ${now.pop || "-"}% / ${now.minTemp || "-"}°C - ${now.maxTemp || "-"}°C`;
-
-        if (Number(now.pop) >= 50 || (now.weather && now.weather.includes("雨"))) {
+        if (now.pop === "-" ? false : Number(now.pop) >= 50 || (now.weather && now.weather.includes("雨"))) {
           rainAlert.textContent = "出門記得帶傘喔!! ☂️";
           rainAlert.style.color = "#f25d5d";
         } else {
@@ -1118,13 +965,11 @@
 
         updateEmotionFeatures(now);
         renderDays(parsedData);
-        
-        // 已經將註解拿掉，啟用動態繪圖！
         renderChart(parsedData);
-        
+
       } catch (error) {
         console.error(error);
-        statusBox.textContent = "讀取失敗，請確認網路或 API 金鑰。";
+        statusBox.textContent = "讀取失敗，請確認本地 Python (app.py) 是否啟動。";
         statusBox.className = "error";
         statusBox.style.display = "block";
       }
