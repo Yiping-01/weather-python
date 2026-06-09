@@ -11,7 +11,7 @@ app = Flask(__name__)
 CORS(app)
 
 # 政府氣象署 API 設定（安全地保留在後端）
-API_KEY = "CWA-C00C85F2-5345-4447-B50A-7EB2396408A1"
+API_KEY = "CWA-A369996B-2E49-49D7-AE5C-FDAC712BB9FC"
 API_URL = "https://opendata.cwa.gov.tw/api/v1/rest/datastore/F-D0047-091"
 
 
